@@ -1,0 +1,25 @@
+---
+- name: Adding aliases
+  loop: "{{ aliases | dict2items }}"
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item.value }} {{ item.key }}"
+
+- name: Install bind9 (attacker-controlled authoritative server)
+  apt:
+    name: bind9
+    update_cache: yes
+
+- name: Deploy named.conf.local with the per-sandbox attacker zone
+  template:
+    src: named.conf.local.j2
+    dest: /etc/bind/named.conf.local
+    mode: '0644'
+  notify: Reload bind9
+
+- name: Deploy the zone file for the attacker-controlled domain
+  template:
+    src: db.attacker-zone.j2
+    dest: "/etc/bind/db.{{ attacker_zone }}.attacker.lab"
+    mode: '0644'
+  notify: Reload bind9

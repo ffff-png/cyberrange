@@ -1,0 +1,22 @@
+---
+- name: Adding aliases
+  loop: "{{ aliases | dict2items }}"
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item.value }} {{ item.key }}"
+
+- name: Install bind9 (caching resolver used by client)
+  apt:
+    name: bind9
+    update_cache: yes
+
+- name: Deploy a deliberately weak named.conf.options for the lab
+  template:
+    src: named.conf.options.j2
+    dest: /etc/bind/named.conf.options
+    mode: '0644'
+  notify: Reload bind9
+
+# NOTE pour la remediation (niveau 6) : la correction attendue consiste
+# a remettre "query-source port *;" (aleatoire) et activer le
+# 0x20-encoding / DNS Cookies, puis recharger le service.

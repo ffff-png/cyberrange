@@ -1,0 +1,17 @@
+---
+- name: Adding aliases
+  loop: "{{ aliases | dict2items }}"
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item.value }} {{ item.key }}"
+
+- name: Point client's resolver at local-dns
+  copy:
+    dest: /etc/resolv.conf
+    content: |
+      nameserver 10.1.26.9
+
+- name: Install curl for the exploitation step
+  apt:
+    name: curl
+    update_cache: yes

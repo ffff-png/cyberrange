@@ -1,0 +1,10 @@
+---
+- name: Install net-tools
+  apt:
+    name: net-tools
+    update_cache: yes
+
+- name: Install dnsutils (dig, nslookup)
+  apt:
+    name: dnsutils
+    update_cache: yes

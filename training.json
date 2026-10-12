@@ -1,0 +1,172 @@
+{
+    "title": "Remote DNS Cache Poisoning Training",
+    "description": "Scenario base sur le Remote DNS Cache Poisoning (SEED Labs), avec flags variants par sandbox.",
+    "prerequisites": [],
+    "outcomes": [
+        "Comprendre et mener une attaque de type Remote DNS Cache Poisoning (Kaminsky).",
+        "Comprendre pourquoi la randomisation du port source et des transaction IDs protege les resolveurs DNS."
+    ],
+    "state": "UNRELEASED",
+    "show_stepper_bar": true,
+    "estimated_duration": 37,
+    "variant_sandboxes": true,
+    "levels": [
+        {
+            "title": "Introduction",
+            "level_type": "INFO_LEVEL",
+            "order": 0,
+            "estimated_duration": 0,
+            "minimal_possible_solve_time": null,
+            "content": "# Informations generales\n\n* La reponse de ce niveau sera **differente pour chaque eleve** : la plateforme genere une valeur unique par sandbox, donc la copier sur un camarade ne fonctionnera pas.\n* Ce jeu est a but educatif uniquement. L'utilisation de ces outils en dehors de ce cadre est illegale.\n\n# Scenario\n\nTu es un apprenti analyste red team. Ta mission : prouver qu'un resolveur DNS mal configure (`local-dns`) peut etre empoisonne a distance (sans etre sur le meme reseau que lui), afin de rediriger un utilisateur vers un faux site."
+        },
+        {
+            "title": "Acces au sandbox",
+            "level_type": "ACCESS_LEVEL",
+            "order": 1,
+            "estimated_duration": 0,
+            "minimal_possible_solve_time": null,
+            "passkey": "start",
+            "cloud_content": "Connecte-toi d'abord au sandbox.\n\n### Acces au sandbox\n1. Dans la topologie a droite, clic droit sur **`attacker`** puis **`Open GUI`**.\n2. Connecte-toi avec `user` / `Password123`.\n\nUne fois connecte, soumets la reponse **`start`**.",
+            "local_content": "Ce sandbox n'a pas ete teste en local."
+        },
+        {
+            "title": "Reconnaissance",
+            "level_type": "TRAINING_LEVEL",
+            "order": 2,
+            "estimated_duration": 5,
+            "minimal_possible_solve_time": null,
+            "answer": null,
+            "answer_variable_name": "target_domain",
+            "content": "Scanne le reseau `target-switch` (10.1.26.0/24) avec `nmap` pour identifier `local-dns`, le resolveur DNS victime (port 53/udp).\n\nEnsuite, consulte le fichier `/opt/attack/mission.txt` sur ta machine `attacker` : il indique le nom de domaine que tu dois empoisonner dans le cache de `local-dns`.\n\nLe flag est **ce nom de domaine** (sans le suffixe `.lab`).",
+            "solution": "nmap -p 53 10.1.26.0/24 puis cat /opt/attack/mission.txt",
+            "solution_penalized": true,
+            "hints": [
+                {
+                    "title": "Quel outil utiliser ?",
+                    "content": "`nmap -p 53 10.1.26.0/24`",
+                    "hint_penalty": 2,
+                    "order": 0
+                },
+                {
+                    "title": "Ou trouver la cible ?",
+                    "content": "cat /opt/attack/mission.txt",
+                    "hint_penalty": 3,
+                    "order": 1
+                }
+            ],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 10,
+            "variant_answers": true,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Prise de controle de la zone attaquante",
+            "level_type": "TRAINING_LEVEL",
+            "order": 3,
+            "estimated_duration": 7,
+            "minimal_possible_solve_time": null,
+            "answer": null,
+            "answer_variable_name": "attacker_zone",
+            "content": "Tu controles deja une zone DNS sur `attacker-ns` (10.1.27.9) : son nom figure lui aussi dans `/opt/attack/mission.txt`.\n\nConnecte-toi en SSH a `attacker-ns` et verifie que la zone est bien active (`named-checkconf`, `dig @10.1.27.9 trigger.<ta_zone>.attacker.lab`).\n\nLe flag est le **nom de cette zone** (sans le suffixe `.attacker.lab`).",
+            "solution": "cat /etc/bind/named.conf.local sur attacker-ns",
+            "solution_penalized": true,
+            "hints": [
+                {
+                    "title": "Ou est la config ?",
+                    "content": "/etc/bind/named.conf.local sur attacker-ns",
+                    "hint_penalty": 2,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 15,
+            "variant_answers": true,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Lancement de l'attaque",
+            "level_type": "TRAINING_LEVEL",
+            "order": 4,
+            "estimated_duration": 10,
+            "minimal_possible_solve_time": null,
+            "answer": null,
+            "answer_variable_name": "spoofed_ip",
+            "content": "Lance le script fourni depuis `attacker` :\n\n```\nsudo python3 /opt/attack/poison.py\n```\n\nIl force `local-dns` a interroger `attacker-ns`, puis injecte des reponses DNS forgees usurpant l'autorite sur le domaine cible, avant que la vraie reponse n'arrive.\n\nVerifie ensuite depuis `client` :\n\n```\ndig <domaine_cible>.lab @10.1.26.9\n```\n\nLe flag est **l'adresse IP** maintenant renvoyee pour ce domaine.",
+            "solution": "sudo python3 /opt/attack/poison.py puis dig <target_domain>.lab @10.1.26.9",
+            "solution_penalized": true,
+            "hints": [
+                {
+                    "title": "Ca ne marche pas du premier coup ?",
+                    "content": "Relance le script plusieurs fois : c'est une course, les reponses forgees doivent arriver avant la vraie.",
+                    "hint_penalty": 3,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 25,
+            "variant_answers": true,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Exploitation",
+            "level_type": "TRAINING_LEVEL",
+            "order": 5,
+            "estimated_duration": 5,
+            "minimal_possible_solve_time": null,
+            "answer": null,
+            "answer_variable_name": "rogue_flag",
+            "content": "Depuis `client`, le cache DNS de `local-dns` est desormais empoisonne. Visite le domaine cible comme le ferait l'utilisateur victime :\n\n```\ncurl http://<domaine_cible>.lab\n```\n\nLe flag est affiche sur la page.",
+            "solution": "curl http://<target_domain>.lab depuis client",
+            "solution_penalized": true,
+            "hints": [],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 15,
+            "variant_answers": true,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Remediation",
+            "level_type": "TRAINING_LEVEL",
+            "order": 6,
+            "estimated_duration": 5,
+            "minimal_possible_solve_time": null,
+            "answer": "rndc reload",
+            "answer_variable_name": null,
+            "content": "Pour corriger la vulnerabilite, `local-dns` doit utiliser un port source aleatoire (et non fixe) pour ses requetes sortantes.\n\nSur `local-dns`, edite `/etc/bind/named.conf.options` et remplace la ligne `query-source address * port ...;` par `query-source address * port *;`, puis recharge le service.\n\nLe flag est **la commande utilisee pour recharger le service BIND** (identique pour tous, car c'est une procedure standard, pas une donnee secrete).",
+            "solution": "sudo rndc reload",
+            "solution_penalized": true,
+            "hints": [
+                {
+                    "title": "Quelle commande ?",
+                    "content": "sudo rndc reload",
+                    "hint_penalty": 1,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 10,
+            "variant_answers": false,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        }
+    ]
+}

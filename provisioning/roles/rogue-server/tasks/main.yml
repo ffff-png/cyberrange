@@ -1,0 +1,21 @@
+---
+- name: Install nginx
+  apt:
+    name: nginx
+    update_cache: yes
+
+- name: Add the per-sandbox spoofed IP as a secondary address on eth0
+  command: "ip addr add {{ spoofed_ip }}/24 dev eth0"
+  ignore_errors: yes   # deja present si le playbook est rejoue
+
+- name: Make the secondary IP persist on boot
+  lineinfile:
+    path: /etc/network/interfaces
+    line: "up ip addr add {{ spoofed_ip }}/24 dev eth0"
+    insertafter: EOF
+
+- name: Deploy the rogue landing page with the per-sandbox flag
+  template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+    mode: '0644'

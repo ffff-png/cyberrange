@@ -1,0 +1,36 @@
+---
+- name: Adding aliases
+  loop: "{{ aliases | dict2items }}"
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item.value }} {{ item.key }}"
+
+- name: Create attack working directory
+  file:
+    path: /opt/attack
+    state: directory
+    mode: '0755'
+
+- name: Install scapy for the attack script
+  apt:
+    name: python3-scapy
+    update_cache: yes
+
+- name: Deploy mission briefing (contains the per-sandbox target domain)
+  copy:
+    dest: /opt/attack/mission.txt
+    mode: '0644'
+    content: |
+      Mission :
+      - Domaine a empoisonner dans le cache de local-dns : {{ target_domain }}.lab
+      - Zone que tu controles deja sur attacker-ns      : {{ attacker_zone }}.attacker.lab
+      - Une fois la zone active sur attacker-ns, lance :
+          sudo python3 /opt/attack/poison.py
+      - Verifie ensuite depuis client :
+          dig {{ target_domain }}.lab @10.1.26.9
+
+- name: Deploy the poisoning script (Scapy, per-sandbox parameters)
+  template:
+    src: poison.py.j2
+    dest: /opt/attack/poison.py
+    mode: '0755'

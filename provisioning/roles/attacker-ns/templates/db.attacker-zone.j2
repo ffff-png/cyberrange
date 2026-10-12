@@ -1,0 +1,11 @@
+$TTL    604800
+@       IN      SOA     ns.{{ attacker_zone }}.attacker.lab. admin.{{ attacker_zone }}.attacker.lab. (
+                              3     ; Serial
+                         604800     ; Refresh
+                          86400     ; Retry
+                        2419200     ; Expire
+                         604800 )   ; Negative Cache TTL
+;
+@       IN      NS      ns.{{ attacker_zone }}.attacker.lab.
+ns      IN      A       10.1.27.9
+trigger IN      A       10.1.27.9

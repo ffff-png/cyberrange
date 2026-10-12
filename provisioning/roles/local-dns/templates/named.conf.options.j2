@@ -1,0 +1,14 @@
+options {
+    directory "/var/cache/bind";
+
+    recursion yes;
+    allow-recursion { 10.1.26.0/24; };
+
+    // Volontairement faible pour le lab : port source fixe au lieu
+    // d'etre aleatoire a chaque requete (c'est ce qui rend l'attaque
+    // Kaminsky praticable ici). A corriger au niveau 6 (remediation).
+    query-source address * port {{ dns_src_port }};
+
+    dnssec-validation no;
+    listen-on { any; };
+};

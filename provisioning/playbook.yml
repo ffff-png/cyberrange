@@ -1,0 +1,64 @@
+---
+# Configuration de base de toutes les machines
+- name: Configuring hosts
+  hosts: hosts
+  become: yes
+  roles:
+    - hosts
+
+# Attaquant : Kali + script d'attaque + paramètres variants
+- name: Configure attacker
+  hosts: attacker
+  become: true
+  roles:
+    - role: user-access
+      user_access_username: user
+      user_access_password: Password123
+      user_access_sudo: True
+    - role: attacker
+    - role: chrony
+
+# Serveur DNS autoritaire possédé par l'attaquant
+- name: Configure attacker-ns
+  hosts: attacker-ns
+  become: true
+  roles:
+    - role: attacker-ns
+
+# Résolveur DNS "victime"
+- name: Configure local-dns
+  hosts: local-dns
+  become: true
+  roles:
+    - role: local-dns
+
+# Faux serveur web vers lequel le DNS empoisonné redirige
+- name: Configure rogue-server
+  hosts: rogue-server
+  become: true
+  roles:
+    - role: rogue-server
+
+# Poste utilisateur victime
+- name: Configure client
+  hosts: client
+  become: true
+  roles:
+    - role: client
+
+# Journalisation / supervision CyberRangeCZ (inchangé par rapport au squelette d'origine)
+- name: setup hosts logging roles
+  hosts:
+    - routers
+    - hosts
+  become: yes
+  vars:
+    sandbox_name: remote-dns-poisoning
+    central_syslog_ip: 78.128.251.179
+  roles:
+    - role: sandbox-logging
+      slf_destination_port: '{% if hostvars["man"] is defined -%} 514 {%- else -%} 515 {%- endif %}'
+      slf_destination: '{% if hostvars["man"] is defined -%} {{ hostvars["man"].ansible_host }} {%- else -%} {{ central_syslog_ip }} {%- endif %}'
+      slf_sandbox_id: "{{ global_sandbox_id | default(student_id) | default(0) }}"
+      slf_sandbox_name: '{{ global_sandbox_name | default(sandbox_name) }}'
+      slf_pool_id: '{{ global_pool_id | default(None) }}'

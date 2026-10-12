@@ -1,0 +1,22 @@
+# APG variables — CyberRangeCZ génère une valeur différente par sandbox
+# (donc par élève) pour chacune. Voir training.json: answer_variable_name.
+
+attacker_zone:
+  type: text
+
+target_domain:
+  type: text
+
+spoofed_ip:
+  type: IP
+  min: 10.1.26.51
+  max: 10.1.26.60
+  prohibited: ["10.1.26.50"]
+
+dns_src_port:
+  type: port
+  min: 33000
+  max: 34000
+
+rogue_flag:
+  type: text

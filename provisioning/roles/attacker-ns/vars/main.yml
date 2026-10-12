@@ -1,0 +1,4 @@
+aliases:
+  attacker: 10.1.27.23
+  local-dns: 10.1.26.9
+routings: []

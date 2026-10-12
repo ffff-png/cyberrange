@@ -1,0 +1,6 @@
+aliases:
+  attacker: 10.1.27.23
+  attacker-ns: 10.1.27.9
+  local-dns: 10.1.26.9
+  rogue-server: 10.1.26.50
+routings: []
